@@ -17,7 +17,9 @@
 
 import fcntl
 import multiprocessing
+import atexit
 import os
+import signal
 import sys
 import shlex
 import os.path
@@ -294,6 +296,7 @@ class Handler(server.ProjectAPIHandler):
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             bufsize=0,
+            preexec_fn=os.setsid,
         )
         # print("A")
         self._set_nonblock(self._proc.stdin.fileno())
@@ -302,6 +305,7 @@ class Handler(server.ProjectAPIHandler):
         #     self.read_transport(1000, 10.0)
         #     time.sleep(1)
         # input("?")
+        atexit.register(lambda: self.close_transport())
         return server.TransportTimeouts(
             session_start_retry_timeout_sec=0,
             session_start_timeout_sec=0,
@@ -312,9 +316,12 @@ class Handler(server.ProjectAPIHandler):
         # print("close_transport")
         if self._proc is not None:
             proc = self._proc
+            pgrp = os.getpgid(proc.pid)
             self._proc = None
             proc.terminate()
+            proc.kill()
             proc.wait()
+            os.killpg(pgrp, signal.SIGKILL)
 
     def _await_ready(self, rlist, wlist, timeout_sec=None, end_time=None):
         if timeout_sec is None and end_time is not None:
