@@ -140,9 +140,9 @@ assert len(tasks) > 0
 #
 
 project_options = {
-    "verbose": True,
-    "quiet": False,
-    "debug": True,
+    "verbose": False,
+    "quiet": True,
+    "debug": False,
     "toolchain": "gcc",
     # "toolchain": "llvm",
     "etiss_script": "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/install/etiss/bin/run_helper.sh",
