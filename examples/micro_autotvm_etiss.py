@@ -139,13 +139,20 @@ assert len(tasks) > 0
 # choose other options by choosing from `PLATFORM` list.
 #
 
+project_options = {
+    "verbose": True,
+    "quiet": False,
+    "debug": True,
+    # "toolchain": "gcc",
+    "toolchain": "llvm",
+    "etiss_script": "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/install/etiss/bin/run_helper.sh",
+    "gcc_prefix": "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/install/riscv_gcc/",
+    "llvm_dir": "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/install/llvm/",
+}
 module_loader = tvm.micro.AutoTvmModuleLoader(
     # template_project_dir=pathlib.Path(tvm.micro.get_microtvm_template_projects("crt")),
-    template_project_dir="/var/tmp/ga87puy/llvm-gen/mlonmcu/workspace/deps/src/tvm/apps/microtvm/etiss/template_project",
-    project_options={
-        "verbose": False,
-        "etiss_script": "/var/tmp/ga87puy/llvm-gen/etiss/build/installed/bin/run_helper.sh",
-    },
+    template_project_dir="/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/src/microtvm_etiss/template_project",
+    project_options=project_options,
 )
 builder = tvm.autotvm.LocalBuilder(
     n_parallel=1,
