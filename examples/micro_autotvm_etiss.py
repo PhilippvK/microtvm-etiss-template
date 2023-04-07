@@ -202,30 +202,11 @@ with pass_context:
 temp_dir = tvm.contrib.utils.tempdir()
 project = tvm.micro.generate_project(
     # str(tvm.micro.get_microtvm_template_projects("crt")),
-    "/var/tmp/ga87puy/llvm-gen/mlonmcu/workspace/deps/src/tvm/apps/microtvm/etiss/template_project",
+    "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/src/microtvm_etiss/template_project",
     lowered,
     temp_dir / "project",
-    {
-        "verbose": False,
-        "etiss_script": "/var/tmp/ga87puy/llvm-gen/etiss/build/installed/bin/run_helper.sh",
-    },
+    project_options,
 )
-
-# Compiling for physical hardware
-if use_physical_hw:
-    temp_dir = tvm.contrib.utils.tempdir()
-    project = tvm.micro.generate_project(
-        str(tvm.micro.get_microtvm_template_projects("zephyr")),
-        lowered,
-        temp_dir / "project",
-        {
-            "board": BOARD,
-            "verbose": False,
-            "project_type": "host_driven",
-            "serial_number": SERIAL,
-            "config_main_stack_size": 4096,
-        },
-    )
 
 project.build()
 project.flash()
@@ -250,30 +231,11 @@ with tvm.autotvm.apply_history_best(str(autotune_log_file)):
 temp_dir = tvm.contrib.utils.tempdir()
 project = tvm.micro.generate_project(
     # str(tvm.micro.get_microtvm_template_projects("crt")),
-    "/var/tmp/ga87puy/llvm-gen/mlonmcu/workspace/deps/src/tvm/apps/microtvm/etiss/template_project",
+    "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/src/microtvm_etiss/template_project",
     lowered_tuned,
     temp_dir / "project",
-    {
-        "verbose": False,
-        "etiss_script": "/var/tmp/ga87puy/llvm-gen/etiss/build/installed/bin/run_helper.sh",
-    },
+    project_options,
 )
-
-# Compiling for physical hardware
-if use_physical_hw:
-    temp_dir = tvm.contrib.utils.tempdir()
-    project = tvm.micro.generate_project(
-        str(tvm.micro.get_microtvm_template_projects("zephyr")),
-        lowered_tuned,
-        temp_dir / "project",
-        {
-            "board": BOARD,
-            "verbose": False,
-            "project_type": "host_driven",
-            "serial_number": SERIAL,
-            "config_main_stack_size": 4096,
-        },
-    )
 
 project.build()
 project.flash()
