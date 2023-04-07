@@ -31,7 +31,8 @@ SET(TOOLCHAIN
     "gcc"
     CACHE STRING "select from llvm and gcc for the compilation."
 )
-variable_watch(LLVM_DIR)
+SET_PROPERTY(CACHE TOOLCHAIN PROPERTY STRINGS gcc llvm)
+# variable_watch(LLVM_DIR)
 SET(CMAKE_TOOLCHAIN_FILE "cmake/toolchain_${TOOLCHAIN}.cmake")
 
 # the following three lines can be deleted because it is repeat in LookupClang.cmake
