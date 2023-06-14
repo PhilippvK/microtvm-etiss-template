@@ -279,11 +279,11 @@ class Handler(server.ProjectAPIHandler):
         )
 
         # Copy etiss.ini
+        xlen = int(options.get("arch", ARCH)[2:4])
+        default_apu_arch = f"RV{xlen}IMACFD"
         self._populate_ini(
             current_dir / f"etiss.ini.template",
             project_dir / INI_FILENAME,
-            xlen = int(options.get("arch", ARCH)[2:4])
-            default_apu_arch = f"RV{xlen}IMACFD"
             options.get("cpu_arch", default_cpu_arch),
         )
 
