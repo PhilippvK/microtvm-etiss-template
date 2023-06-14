@@ -52,6 +52,7 @@ IS_TEMPLATE = not os.path.exists(os.path.join(PROJECT_DIR, MODEL_LIBRARY_FORMAT_
 WORKSPACE_SIZE_BYTES = 1 * 1024 * 1024
 
 CMAKEFILE_FILENAME = "CMakeLists.txt"
+INI_FILENAME = "etiss.ini"
 
 # The build target given to make
 BUILD_TARGET = "build/main"
@@ -190,7 +191,6 @@ class Handler(server.ProjectAPIHandler):
     ):
         """Generate CMakeList file from template."""
 
-        regex = re.compile(r"([A-Z_]+) := (<[A-Z_]+>)")
         with open(cmakefile_path, "w") as cmakefile_f:
             with open(cmakefile_template_path, "r") as cmakefile_template_f:
                 for line in cmakefile_template_f:
@@ -200,6 +200,21 @@ class Handler(server.ProjectAPIHandler):
                 )
                 if verbose:
                     cmakefile_f.write(f"set(CMAKE_VERBOSE_MAKEFILE TRUE)\n")
+
+    def _populate_ini(
+        self,
+        ini_template_path: pathlib.Path,
+        ini_path: pathlib.Path,
+        cpu_arch: bool,
+    ):
+        """Generate etiss.ini file from template."""
+
+        with open(ini_path, "w") as ini_f:
+            with open(ini_template_path, "r") as ini_template_f:
+                for line in inifile_template_f:
+                    inifile_f.write(line)
+                inifile_f.write("[StringConfiguration]\n")
+                inifile_f.write(f"arch.cpu={cpu_arch}\n")
 
     def generate_project(self, model_library_format_path, standalone_crt_dir, project_dir, options):
         # Make project directory.
@@ -264,9 +279,12 @@ class Handler(server.ProjectAPIHandler):
         )
 
         # Copy etiss.ini
-        shutil.copy2(
-            current_dir / "etiss.ini",
-            project_dir / "etiss.ini",
+        self._populate_ini(
+            current_dir / f"etiss.ini.template",
+            project_dir / INI_FILENAME,
+            xlen = int(options.get("arch", ARCH)[2:4])
+            default_apu_arch = f"RV{xlen}IMACFD"
+            options.get("cpu_arch", default_cpu_arch),
         )
 
     def build(self, options):
