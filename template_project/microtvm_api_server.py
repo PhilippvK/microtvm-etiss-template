@@ -135,6 +135,13 @@ class Handler(server.ProjectAPIHandler):
                     help="Name used ABI.",
                 ),
                 server.ProjectOption(
+                    "cpu_arch",
+                    optional=["generate_project"],
+                    # default=None,
+                    type="str",
+                    help="Name used CPU_ARCH.",
+                ),
+                server.ProjectOption(
                     "toolchain",
                     optional=["build"],
                     default=TOOLCHAIN,
@@ -211,10 +218,10 @@ class Handler(server.ProjectAPIHandler):
 
         with open(ini_path, "w") as ini_f:
             with open(ini_template_path, "r") as ini_template_f:
-                for line in inifile_template_f:
-                    inifile_f.write(line)
-                inifile_f.write("[StringConfiguration]\n")
-                inifile_f.write(f"arch.cpu={cpu_arch}\n")
+                for line in ini_template_f:
+                    ini_f.write(line)
+                ini_f.write("[StringConfigurations]\n")
+                ini_f.write(f"arch.cpu={cpu_arch}\n")
 
     def generate_project(self, model_library_format_path, standalone_crt_dir, project_dir, options):
         # Make project directory.
@@ -280,7 +287,7 @@ class Handler(server.ProjectAPIHandler):
 
         # Copy etiss.ini
         xlen = int(options.get("arch", ARCH)[2:4])
-        default_apu_arch = f"RV{xlen}IMACFD"
+        default_cpu_arch = f"RV{xlen}IMACFD"
         self._populate_ini(
             current_dir / f"etiss.ini.template",
             project_dir / INI_FILENAME,
