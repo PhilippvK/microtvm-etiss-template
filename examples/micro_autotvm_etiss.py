@@ -41,6 +41,8 @@ This tutorial explains how to autotune a model using the C runtime.
 # Installing Zephyr takes ~20 min.
 import os
 
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 ######################################################################
 #
 #     .. include:: ../../../../gallery/how_to/work_with_microtvm/install_zephyr.rst
@@ -140,18 +142,24 @@ assert len(tasks) > 0
 #
 
 project_options = {
+    # "verbose": False,
+    # "quiet": True,
     "verbose": False,
-    "quiet": True,
+    "quiet": False,
     "debug": False,
-    "toolchain": "gcc",
-    # "toolchain": "llvm",
-    "etiss_script": "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/install/etiss/bin/run_helper.sh",
-    "gcc_prefix": "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/install/riscv_gcc/",
-    "llvm_dir": "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/install/llvm/",
+    # "toolchain": "gcc",
+    "toolchain": "llvm",
+    # "arch": "rv32imc_zicsr",
+    "arch": "rv32imc_xcvalu",
+    "abi": "ilp32",
+    "etiss_script": "/var/tmp/ga87puy/llvm-gen2/install/etiss/bin/run_helper.sh",
+    "gcc_prefix": "/var/tmp/ga87puy/llvm-gen2/install/workspace/deps/install/riscv_gcc",
+    "llvm_dir": "/var/tmp/ga87puy/llvm-gen2/install/llvm_minimal",
+    "cpu_arch": "RV32IMACFDXCoreV",
 }
 module_loader = tvm.micro.AutoTvmModuleLoader(
     # template_project_dir=pathlib.Path(tvm.micro.get_microtvm_template_projects("crt")),
-    template_project_dir="/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/src/microtvm_etiss/template_project",
+    template_project_dir=f"{dir_path}/../template_project",
     project_options=project_options,
 )
 builder = tvm.autotvm.LocalBuilder(
@@ -202,7 +210,7 @@ with pass_context:
 temp_dir = tvm.contrib.utils.tempdir()
 project = tvm.micro.generate_project(
     # str(tvm.micro.get_microtvm_template_projects("crt")),
-    "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/src/microtvm_etiss/template_project",
+    f"{dir_path}/../template_project",
     lowered,
     temp_dir / "project",
     project_options,
@@ -231,7 +239,7 @@ with tvm.autotvm.apply_history_best(str(autotune_log_file)):
 temp_dir = tvm.contrib.utils.tempdir()
 project = tvm.micro.generate_project(
     # str(tvm.micro.get_microtvm_template_projects("crt")),
-    "/var/tmp/ga87puy/mlonmcu/mlonmcu/workspace/deps/src/microtvm_etiss/template_project",
+    f"{dir_path}/../template_project",
     lowered_tuned,
     temp_dir / "project",
     project_options,
