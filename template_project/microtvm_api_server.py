@@ -215,7 +215,7 @@ class Handler(server.ProjectAPIHandler):
         self,
         ini_template_path: pathlib.Path,
         ini_path: pathlib.Path,
-        cpu_arch: bool,
+        cpu_arch: str,
     ):
         """Generate etiss.ini file from template."""
 
