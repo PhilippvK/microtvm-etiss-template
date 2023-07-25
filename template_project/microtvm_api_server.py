@@ -29,6 +29,7 @@ import shutil
 import logging
 import subprocess
 import tarfile
+import tempfile
 import time
 import re
 import distutils.util
@@ -83,6 +84,8 @@ class Handler(server.ProjectAPIHandler):
     def __init__(self):
         super(Handler, self).__init__()
         self._proc = None
+        self.elfdest = tempfile.mkstemp(dir="/tmp/elfs")[1]
+        self.outputs = b""
 
     def server_info_query(self, tvm_version):
         return server.ServerInfo(
@@ -335,6 +338,7 @@ class Handler(server.ProjectAPIHandler):
         args = []
         etiss_script = options.get("etiss_script")
         assert etiss_script is not None
+        shutil.copyfile(os.path.join(PROJECT_DIR, self.BUILD_TARGET), self.elfdest)
         args.append(etiss_script)
         args.append(self.BUILD_TARGET)
         args.extend(options.get("etiss_args", []))
@@ -368,6 +372,9 @@ class Handler(server.ProjectAPIHandler):
 
     def close_transport(self):
         # print("close_transport")
+        outfile = str(self.elfdest) + ".out"
+        with open(outfile, "wb") as f:
+            f.write(self.outputs)
         if self._proc is not None:
             proc = self._proc
             pgrp = os.getpgid(proc.pid)
