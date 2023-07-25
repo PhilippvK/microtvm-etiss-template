@@ -223,7 +223,9 @@ class Handler(server.ProjectAPIHandler):
             with open(ini_template_path, "r") as ini_template_f:
                 for line in ini_template_f:
                     ini_f.write(line)
-                ini_f.write("[StringConfigurations]\n")
+                if cpu_arch in [None, "None"]:
+                    return
+                # ini_f.write("[StringConfigurations]\n")
                 ini_f.write(f"arch.cpu={cpu_arch}\n")
 
     def generate_project(self, model_library_format_path, standalone_crt_dir, project_dir, options):
