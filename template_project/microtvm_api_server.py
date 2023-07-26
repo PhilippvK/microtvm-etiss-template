@@ -414,6 +414,7 @@ class Handler(server.ProjectAPIHandler):
             self.close_transport()
             raise server.TransportClosedError()
         # print("ret", to_return)
+        self.outputs += to_return
 
         return to_return
 
