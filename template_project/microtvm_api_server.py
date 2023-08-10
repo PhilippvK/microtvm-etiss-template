@@ -39,6 +39,8 @@ from tvm.micro.project_api import server
 _LOG = logging.getLogger(__name__)
 _LOG.setLevel(logging.WARNING)
 
+DBG = False
+# DBG = True
 
 PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.path.getcwd())
 
@@ -84,8 +86,9 @@ class Handler(server.ProjectAPIHandler):
     def __init__(self):
         super(Handler, self).__init__()
         self._proc = None
-        self.elfdest = tempfile.mkstemp(dir="/tmp/elfs")[1]
-        self.outputs = b""
+        if DBG:
+            self.elfdest = tempfile.mkstemp(dir="/tmp/elfs")[1]
+            self.outputs = b""
 
     def server_info_query(self, tvm_version):
         return server.ServerInfo(
@@ -340,7 +343,8 @@ class Handler(server.ProjectAPIHandler):
         args = []
         etiss_script = options.get("etiss_script")
         assert etiss_script is not None
-        shutil.copyfile(os.path.join(PROJECT_DIR, self.BUILD_TARGET), self.elfdest)
+        if DBG:
+            shutil.copyfile(os.path.join(PROJECT_DIR, self.BUILD_TARGET), self.elfdest)
         args.append(etiss_script)
         args.append(self.BUILD_TARGET)
         args.extend(options.get("etiss_args", []))
@@ -374,9 +378,10 @@ class Handler(server.ProjectAPIHandler):
 
     def close_transport(self):
         # print("close_transport")
-        outfile = str(self.elfdest) + ".out"
-        with open(outfile, "wb") as f:
-            f.write(self.outputs)
+        if DBG:
+            outfile = str(self.elfdest) + ".out"
+            with open(outfile, "wb") as f:
+                f.write(self.outputs)
         if self._proc is not None:
             proc = self._proc
             pgrp = os.getpgid(proc.pid)
@@ -414,7 +419,8 @@ class Handler(server.ProjectAPIHandler):
             self.close_transport()
             raise server.TransportClosedError()
         # print("ret", to_return)
-        self.outputs += to_return
+        if DBG:
+            self.outputs += to_return
 
         return to_return
 
