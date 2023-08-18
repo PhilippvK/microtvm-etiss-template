@@ -108,6 +108,7 @@ target_sources(tvm_model PRIVATE ${tvm_model_srcs})
 target_include_directories(tvm_model PRIVATE ${CMAKE_SOURCE_DIR}/include crt_config crt/include)
 target_compile_options(tvm_model PRIVATE -Wno-error=unused-variable -Wno-error=missing-braces -Wno-error=unused-const-variable -Wno-unused-variable)
 set_target_properties(tvm_model PROPERTIES LINKER_LANGUAGE C)
+target_link_libraries(tvm_model PRIVATE m)
 target_link_libraries(main PRIVATE tvm_model)
 
 file(GLOB_RECURSE app_srcs src/**.cc)
