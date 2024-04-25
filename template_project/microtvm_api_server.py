@@ -54,6 +54,8 @@ IS_TEMPLATE = not os.path.exists(os.path.join(PROJECT_DIR, MODEL_LIBRARY_FORMAT_
 # WORKSPACE_SIZE_BYTES = 2 * 1024 * 1024
 WORKSPACE_SIZE_BYTES = 1 * 1024 * 1024
 
+CPU_FREQ = 100e6
+
 CMAKEFILE_FILENAME = "CMakeLists.txt"
 INI_FILENAME = "etiss.ini"
 
@@ -189,6 +191,13 @@ class Handler(server.ProjectAPIHandler):
                     type="str",
                     help="Path to run_helper.sh script.",
                 ),
+                server.ProjectOption(
+                    "cpu_freq",
+                    optional=["generate_project", "build"],  # TODO: check
+                    type="int",
+                    default=CPU_FREQ,
+                    help="Sets the value of ETISS_CPU_FREQ_HZ.",
+                ),
             ],
         )
 
@@ -309,6 +318,8 @@ class Handler(server.ProjectAPIHandler):
         debug = options.get("debug", False)
         build_type = "Debug" if debug else "Release"
         cmake_args.append(f"-DCMAKE_BUILD_TYPE={build_type}")
+        cpu_freq = options.get("cpu_freq", CPU_FREQ)
+        cmake_args.append(f"-DETISS_CPU_FREQ_HZ={cpu_freq}")
         cmake_args.append("-DTOOLCHAIN=" + options.get("toolchain", TOOLCHAIN))
         llvm_dir = options.get("llvm_dir", None)
         if llvm_dir:
