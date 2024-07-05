@@ -101,13 +101,13 @@ size_t TVMPlatformFormatMessage(char* out_buf, size_t out_buf_size_bytes, const 
 
 // Allocate memory for use by TVM.
 tvm_crt_error_t TVMPlatformMemoryAllocate(size_t num_bytes, DLDevice dev, void** out_ptr) {
-  // TVMLogf("Alloc: %u\n", num_bytes);
+  TVMLogf("Alloc: %u\n", num_bytes);
   return memory_manager->Allocate(memory_manager, num_bytes, dev, out_ptr);
 }
 
 // Free memory used by TVM.
 tvm_crt_error_t TVMPlatformMemoryFree(void* ptr, DLDevice dev) {
-  // TVMLogf("Free\n");
+  TVMLogf("Free\n");
   return memory_manager->Free(memory_manager, ptr, dev);
 }
 
@@ -138,7 +138,7 @@ tvm_crt_error_t TVMPlatformTimerStop(double* elapsed_time_seconds) {
   // *elapsed_time_seconds = 0.042;
   uint64_t microtvm_stop_time = rdcycle64();
   *elapsed_time_seconds = (microtvm_stop_time - g_microtvm_start_time) / (float)(ETISS_CPU_FREQ_HZ);
-  // TVMLogf("delta: %f\n", *elapsed_time_seconds);
+  TVMLogf("delta: %f\n", *elapsed_time_seconds);
   g_microtvm_timer_running = 0;
   return kTvmErrorNoError;
 }
