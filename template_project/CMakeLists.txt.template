@@ -79,6 +79,7 @@ ADD_DEFINITIONS(-fno-use-cxa-atexit)
 ADD_DEFINITIONS(-fno-rtti)
 # ADD_DEFINITIONS(-fno-exceptions)
 ADD_DEFINITIONS(-fno-threadsafe-statics)
+ADD_COMPILE_OPTIONS(-g)
 message(STATUS "RISCV_ARCH=${RISCV_ARCH}")
 message(STATUS "RISCV_ABI=${RISCV_ABI}")
 
