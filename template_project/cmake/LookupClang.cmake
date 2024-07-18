@@ -1,4 +1,4 @@
-set(CLANG_VERSIONS 17 16 15 14)
+set(CLANG_VERSIONS 20 19 18 17 16 15 14)
 
 set(LLVM_DIR "" CACHE PATH "Lookup path for the llvm installation.")
 
@@ -12,11 +12,11 @@ function(do_lookup program out)
     # Custom path, explicit versions
     find_program(${program}_NAME_MATCH NAMES ${VERSION_NAMES} PATHS ${LLVM_DIR}/bin/ NO_DEFAULT_PATH)
     IF(NOT ${program}_NAME_MATCH)
-        # System path, explicit versions
-        find_program(${program}_NAME_MATCH NAMES ${VERSION_NAMES})
+        # Custom path, implicit version
+        find_program(${program}_NAME_MATCH NAMES ${program} PATHS ${LLVM_DIR}/bin/ NO_DEFAULT_PATH)
         IF(NOT ${program}_NAME_MATCH)
-            # Custom path, implicit version
-            find_program(${program}_NAME_MATCH NAMES ${program} PATHS ${LLVM_DIR}/bin/ NO_DEFAULT_PATH)
+            # System path, explicit versions
+            find_program(${program}_NAME_MATCH NAMES ${VERSION_NAMES})
             IF(NOT ${program}_NAME_MATCH)
                 # System path, implicit version
                 find_program(${program}_NAME_MATCH NAMES ${program})
