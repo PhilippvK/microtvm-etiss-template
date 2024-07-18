@@ -41,6 +41,8 @@
 #define ETISS_CPU_FREQ_HZ (100000000)
 #endif  // ETISS_CPU_FREQ_HZ
 
+// #define PRINT
+
 
 /**
  * @brief Returns the full 64bit register cycle register, which holds the
@@ -101,19 +103,25 @@ size_t TVMPlatformFormatMessage(char* out_buf, size_t out_buf_size_bytes, const 
 
 // Allocate memory for use by TVM.
 tvm_crt_error_t TVMPlatformMemoryAllocate(size_t num_bytes, DLDevice dev, void** out_ptr) {
+#ifdef PRINT
   TVMLogf("Alloc: %u\n", num_bytes);
+#endif
   return memory_manager->Allocate(memory_manager, num_bytes, dev, out_ptr);
 }
 
 // Free memory used by TVM.
 tvm_crt_error_t TVMPlatformMemoryFree(void* ptr, DLDevice dev) {
+#ifdef PRINT
   TVMLogf("Free\n");
+#endif
   return memory_manager->Free(memory_manager, ptr, dev);
 }
 
 // Start a device timer.
 tvm_crt_error_t TVMPlatformTimerStart() {
+#ifdef PRINT
   // TVMLogf("Start\n");
+#endif
   if (g_microtvm_timer_running) {
     std::cerr << "timer already running" << std::endl;
     return kTvmErrorPlatformTimerBadState;
@@ -126,7 +134,9 @@ tvm_crt_error_t TVMPlatformTimerStart() {
 
 // Stop the running device timer and get the elapsed time (in microseconds).
 tvm_crt_error_t TVMPlatformTimerStop(double* elapsed_time_seconds) {
+#ifdef PRINT
   // TVMLogf("Stop\n");
+#endif
   if (!g_microtvm_timer_running) {
     std::cerr << "timer not running" << std::endl;
     return kTvmErrorPlatformTimerBadState;
@@ -138,7 +148,9 @@ tvm_crt_error_t TVMPlatformTimerStop(double* elapsed_time_seconds) {
   // *elapsed_time_seconds = 0.042;
   uint64_t microtvm_stop_time = rdcycle64();
   *elapsed_time_seconds = (microtvm_stop_time - g_microtvm_start_time) / (float)(ETISS_CPU_FREQ_HZ);
+#ifdef PRINT
   TVMLogf("delta: %f\n", *elapsed_time_seconds);
+#endif
   g_microtvm_timer_running = 0;
   return kTvmErrorNoError;
 }
@@ -153,7 +165,9 @@ static_assert(RAND_MAX >= (1 << 8), "RAND_MAX is smaller than acceptable");
 unsigned int random_seed = 0;
 // Fill a buffer with random data.
 tvm_crt_error_t TVMPlatformGenerateRandom(uint8_t* buffer, size_t num_bytes) {
+#ifdef PRINT
   // TVMLogf("TVMPlatformGenerateRandom\n");
+#endif
   // if (random_seed == 0) {
   //   // random_seed = (unsigned int)time(NULL);
   //   random_seed = 42;
