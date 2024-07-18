@@ -42,6 +42,9 @@ _LOG.setLevel(logging.WARNING)
 DBG = False
 # DBG = True
 
+PRINT = False
+# PRINT = True
+
 PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.path.getcwd())
 
 
@@ -346,7 +349,8 @@ class Handler(server.ProjectAPIHandler):
         assert (new_flag & os.O_NONBLOCK) != 0, "Cannot set file descriptor {fd} to non-blocking"
 
     def open_transport(self, options):
-        # print("open_transport")
+        if PRINT:
+            print("open_transport")
         # self._proc = subprocess.Popen(
         #     [self.BUILD_TARGET], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0
         # )
@@ -370,6 +374,7 @@ class Handler(server.ProjectAPIHandler):
             args,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             bufsize=0,
             preexec_fn=os.setsid,
         )
@@ -388,7 +393,8 @@ class Handler(server.ProjectAPIHandler):
         )
 
     def close_transport(self):
-        # print("close_transport")
+        if PRINT:
+            print("close_transport")
         if DBG:
             outfile = str(self.elfdest) + ".out"
             with open(outfile, "wb") as f:
@@ -413,7 +419,8 @@ class Handler(server.ProjectAPIHandler):
         return True
 
     def read_transport(self, n, timeout_sec):
-        # print("read_transport", n)
+        if PRINT:
+            print("read_transport", n)
         if self._proc is None:
             raise server.TransportClosedError()
 
@@ -429,14 +436,16 @@ class Handler(server.ProjectAPIHandler):
         if not to_return:
             self.close_transport()
             raise server.TransportClosedError()
-        # print("ret", to_return)
+        if PRINT:
+            print("ret", to_return)
         if DBG:
             self.outputs += to_return
 
         return to_return
 
     def write_transport(self, data, timeout_sec):
-        # print("write_transport", data)
+        if PRINT:
+            print("write_transport", data)
         if self._proc is None:
             raise server.TransportClosedError()
 
