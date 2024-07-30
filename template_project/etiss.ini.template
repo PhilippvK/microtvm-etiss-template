@@ -14,3 +14,7 @@ etiss.loglevel=5
 [StringConfigurations]
 jit.type=TCCJIT
 # jit.type=GCCJIT
+
+# [Plugin gdbserver]
+# plugin.gdbserver.port=2222
+
