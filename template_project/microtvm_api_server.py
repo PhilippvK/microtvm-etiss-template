@@ -20,7 +20,7 @@ import multiprocessing
 import atexit
 import os
 import signal
-import sys
+# import sys
 import shlex
 import os.path
 import pathlib
@@ -31,7 +31,7 @@ import subprocess
 import tarfile
 import tempfile
 import time
-import re
+# import re
 import distutils.util
 
 from tvm.micro.project_api import server
@@ -45,7 +45,7 @@ DBG = False
 PRINT = False
 # PRINT = True
 
-PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.path.getcwd())
+PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.getcwd())
 
 
 MODEL_LIBRARY_FORMAT_RELPATH = "model.tar"
@@ -333,6 +333,7 @@ class Handler(server.ProjectAPIHandler):
         cmake_args.append("-DRISCV_ABI=" + options.get("abi", ABI))
         cmake_args.append("-DRISCV_ELF_GCC_PREFIX=" + options.get("gcc_prefix", ""))
         cmake_args.append("-DRISCV_ELF_GCC_BASENAME=" + options.get("gcc_name", TRIPLE))
+        # print("cmake_args", cmake_args)
         if str2bool(options.get("quiet"), True):
             check_call(["cmake", "..", *cmake_args], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
             check_call(["make", f"-j{NPROC}"], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
@@ -371,6 +372,7 @@ class Handler(server.ProjectAPIHandler):
         # print("args", args)
         # input(">")
         # time.sleep(30)
+        # input("?")
         self._proc = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
@@ -378,6 +380,7 @@ class Handler(server.ProjectAPIHandler):
             stderr=subprocess.STDOUT,
             bufsize=0,
             preexec_fn=os.setsid,
+            # cwd=PROJECT_DIR
         )
         # print("A")
         self._set_nonblock(self._proc.stdin.fileno())
