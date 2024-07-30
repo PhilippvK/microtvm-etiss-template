@@ -202,6 +202,20 @@ class Handler(server.ProjectAPIHandler):
                     default=CPU_FREQ,
                     help="Sets the value of ETISS_CPU_FREQ_HZ.",
                 ),
+                server.ProjectOption(
+                    "instr_trace",
+                    optional=["open_transport"],
+                    type="bool",
+                    default=False,
+                    help="Write instruction trace to file",
+                ),
+                server.ProjectOption(
+                    "mem_trace",
+                    optional=["open_transport"],
+                    type="bool",
+                    default=False,
+                    help="Write memory trace to file",
+                ),
             ],
         )
 
@@ -231,7 +245,10 @@ class Handler(server.ProjectAPIHandler):
         self,
         ini_template_path: pathlib.Path,
         ini_path: pathlib.Path,
-        cpu_arch: str,
+        cpu_arch: str = None,
+        instr_trace: bool = None,
+        mem_trace: bool = None,
+        # TODO: gdbserver
     ):
         """Generate etiss.ini file from template."""
 
@@ -239,10 +256,19 @@ class Handler(server.ProjectAPIHandler):
             with open(ini_template_path, "r") as ini_template_f:
                 for line in ini_template_f:
                     ini_f.write(line)
-                if cpu_arch in [None, "None"]:
-                    return
                 # ini_f.write("[StringConfigurations]\n")
-                ini_f.write(f"arch.cpu={cpu_arch}\n")
+                if cpu_arch not in [None, "None"]:
+                    ini_f.write(f"arch.cpu={cpu_arch}\n")
+                    # return
+                if mem_trace:
+                    ini_f.write("[BoolConfigurations]\n")
+                if mem_trace:
+                    ini_f.write("simple_mem_system.print_dbus_access=true\n")
+                    ini_f.write("simple_mem_system.print_to_file=true\n")
+                if instr_trace:
+                    ini_f.write("[Plugin PrintInstruction]\n")
+                    # ini_f.write("plugin.printinstruction.print_to_file=true\n")
+                    ini_f.write("plugin.printinstruction.print_to_file=true\n")
 
     def generate_project(self, model_library_format_path, standalone_crt_dir, project_dir, options):
         # Make project directory.
@@ -308,11 +334,15 @@ class Handler(server.ProjectAPIHandler):
 
         # Copy etiss.ini
         xlen = int(options.get("arch", ARCH)[2:4])
+        instr_trace = options.get("instr_trace", False)
+        mem_trace = options.get("mem_trace", False)
         default_cpu_arch = f"RV{xlen}IMACFD"
         self._populate_ini(
             current_dir / f"etiss.ini.template",
             project_dir / INI_FILENAME,
-            options.get("cpu_arch", default_cpu_arch),
+            cpu_arch=options.get("cpu_arch", default_cpu_arch),
+            instr_trace=instr_trace,
+            mem_trace=mem_trace,
         )
 
     def build(self, options):
@@ -373,6 +403,8 @@ class Handler(server.ProjectAPIHandler):
         # input(">")
         # time.sleep(30)
         # input("?")
+        # TODO: cwd
+        print("CWD", os.getcwd())
         self._proc = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
