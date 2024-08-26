@@ -34,6 +34,10 @@ import time
 # import re
 import distutils.util
 
+import warnings
+
+warnings.simplefilter("ignore", ResourceWarning)
+
 from tvm.micro.project_api import server
 
 _LOG = logging.getLogger(__name__)
