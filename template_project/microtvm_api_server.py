@@ -315,6 +315,9 @@ class Handler(server.ProjectAPIHandler):
         cmake_path = project_dir / "cmake"
         os.mkdir(cmake_path)
         shutil.copytree(current_dir / "cmake", cmake_path, dirs_exist_ok=True)
+        support_path = project_dir / "support"
+        os.mkdir(support_path)
+        shutil.copytree(current_dir / "support", support_path, dirs_exist_ok=True)
 
         # Populate crt-config.h
         crt_config_dir = project_dir / "crt_config"
