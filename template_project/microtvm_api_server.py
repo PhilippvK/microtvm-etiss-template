@@ -20,6 +20,7 @@ import multiprocessing
 import atexit
 import os
 import signal
+
 # import sys
 import shlex
 import os.path
@@ -31,6 +32,7 @@ import subprocess
 import tarfile
 import tempfile
 import time
+
 # import re
 import distutils.util
 
@@ -104,9 +106,7 @@ class Handler(server.ProjectAPIHandler):
         return server.ServerInfo(
             platform_name="host",
             is_template=IS_TEMPLATE,
-            model_library_format_path=""
-            if IS_TEMPLATE
-            else PROJECT_DIR / MODEL_LIBRARY_FORMAT_RELPATH,
+            model_library_format_path="" if IS_TEMPLATE else PROJECT_DIR / MODEL_LIBRARY_FORMAT_RELPATH,
             project_options=[
                 server.ProjectOption(
                     "verbose",
@@ -156,6 +156,13 @@ class Handler(server.ProjectAPIHandler):
                     # default=None,
                     type="str",
                     help="Name used CPU_ARCH.",
+                ),
+                server.ProjectOption(
+                    "jit",
+                    optional=["generate_project"],
+                    # default=None,
+                    type="str",
+                    help="Type of ETISS JIT.",
                 ),
                 server.ProjectOption(
                     "toolchain",
@@ -239,9 +246,7 @@ class Handler(server.ProjectAPIHandler):
             with open(cmakefile_template_path, "r") as cmakefile_template_f:
                 for line in cmakefile_template_f:
                     cmakefile_f.write(line)
-                cmakefile_f.write(
-                    f"target_compile_definitions(main PUBLIC -DTVM_WORKSPACE_SIZE_BYTES={memory_size})\n"
-                )
+                cmakefile_f.write(f"target_compile_definitions(main PUBLIC -DTVM_WORKSPACE_SIZE_BYTES={memory_size})\n")
                 if verbose:
                     cmakefile_f.write(f"set(CMAKE_VERBOSE_MAKEFILE TRUE)\n")
 
@@ -250,6 +255,7 @@ class Handler(server.ProjectAPIHandler):
         ini_template_path: pathlib.Path,
         ini_path: pathlib.Path,
         cpu_arch: str = None,
+        jit: str = None,
         instr_trace: bool = None,
         mem_trace: bool = None,
         # TODO: gdbserver
@@ -264,8 +270,15 @@ class Handler(server.ProjectAPIHandler):
                 if cpu_arch not in [None, "None"]:
                     ini_f.write(f"arch.cpu={cpu_arch}\n")
                     # return
-                if mem_trace:
+                if jit not in [None, "None"]:
+                    jit_upper = jit.upper()
+                    ini_f.write(f"jit.type={jit_upper}JIT\n")
+                # if mem_trace:
+                if True:
                     ini_f.write("[BoolConfigurations]\n")
+                ini_f.write("jit.gcc.cleanup=false\n")
+                ini_f.write("jit.verify=false\n")
+                ini_f.write("jit.debug=false\n")
                 if mem_trace:
                     ini_f.write("simple_mem_system.print_dbus_access=true\n")
                     ini_f.write("simple_mem_system.print_to_file=true\n")
@@ -341,10 +354,12 @@ class Handler(server.ProjectAPIHandler):
         instr_trace = options.get("instr_trace", False)
         mem_trace = options.get("mem_trace", False)
         default_cpu_arch = f"RV{xlen}IMACFD"
+        default_jit = None
         self._populate_ini(
             current_dir / f"etiss.ini.template",
             project_dir / INI_FILENAME,
             cpu_arch=options.get("cpu_arch", default_cpu_arch),
+            jit=options.get("jit", default_jit),
             instr_trace=instr_trace,
             mem_trace=mem_trace,
         )
@@ -369,7 +384,9 @@ class Handler(server.ProjectAPIHandler):
         cmake_args.append("-DRISCV_ELF_GCC_BASENAME=" + options.get("gcc_name", TRIPLE))
         # print("cmake_args", cmake_args)
         if str2bool(options.get("quiet"), True):
-            check_call(["cmake", "..", *cmake_args], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+            check_call(
+                ["cmake", "..", *cmake_args], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL
+            )
             check_call(["make", f"-j{NPROC}"], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
         else:
             check_call(["cmake", "..", *cmake_args], cwd=build_dir)
@@ -408,7 +425,9 @@ class Handler(server.ProjectAPIHandler):
         # time.sleep(30)
         # input("?")
         # TODO: cwd
-        print("CWD", os.getcwd())
+        # print("CWD", os.getcwd())
+        # print("args", args)
+        # input(">>>")
         self._proc = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
