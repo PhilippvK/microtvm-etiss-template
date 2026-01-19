@@ -409,11 +409,11 @@ class Handler(server.ProjectAPIHandler):
         # args.append("tgdb")
         # args.append("noattach")
         # print("args", args)
-        # input(">")
         # time.sleep(30)
         # input("?")
         # TODO: cwd
-        print("CWD", os.getcwd())
+        # print("CWD", os.getcwd())
+        # input(">")
         self._proc = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
@@ -465,6 +465,8 @@ class Handler(server.ProjectAPIHandler):
         return True
 
     def _drain_until_rpc_start(self, timeout=10.0):
+        if PRINT:
+            print("_drain_until_rpc_start")
         end = time.time() + timeout
         hist = b""
         while time.time() < end:
