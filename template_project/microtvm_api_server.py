@@ -426,6 +426,7 @@ class Handler(server.ProjectAPIHandler):
         # print("A")
         self._set_nonblock(self._proc.stdin.fileno())
         self._set_nonblock(self._proc.stdout.fileno())
+        self._drain_until_rpc_start()
         # while True:
         #     self.read_transport(1000, 10.0)
         #     time.sleep(1)
@@ -463,9 +464,37 @@ class Handler(server.ProjectAPIHandler):
 
         return True
 
+    def _drain_until_rpc_start(self, timeout=10.0):
+        end = time.time() + timeout
+        hist = b""
+        while time.time() < end:
+            fd = self._proc.stdout.fileno()
+            r, _, _ = select.select([fd], [], [], 0.05)
+            if not r:
+                continue
+
+            b = os.read(fd, 1)
+            hist += b
+            if not b:
+                continue
+
+            if b == b'\xfe':
+                # push back into buffer
+                self._rx_buffer = b
+                return
+
+        raise RuntimeError("RPC start byte not found")
+
     def read_transport(self, n, timeout_sec):
         if PRINT:
             print("read_transport", n)
+        if self._rx_buffer:
+            data = self._rx_buffer
+            self._rx_buffer = b""
+            if PRINT:
+                print("ret", data)
+            return data
+
         if self._proc is None:
             raise server.TransportClosedError()
 
