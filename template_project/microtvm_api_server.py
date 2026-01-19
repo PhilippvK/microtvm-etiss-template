@@ -353,6 +353,8 @@ class Handler(server.ProjectAPIHandler):
         )
 
     def build(self, options):
+        if PRINT:
+            print("build")
         build_dir = PROJECT_DIR / "build"
         build_dir.mkdir()
         cmake_args = []
