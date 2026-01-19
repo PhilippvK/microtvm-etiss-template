@@ -77,7 +77,7 @@ int main(int argc, char** argv) {
 
   setbuf(stdin, NULL);
   setbuf(stdout, NULL);
-  TVMLogf("microTVM ETISS runtime - running");
+  // TVMLogf("microTVM ETISS runtime - running");
 
   for (;;) {
     uint8_t c;
