@@ -32,11 +32,13 @@ import tarfile
 import tempfile
 import time
 # import re
-import distutils.util
 
 import warnings
 
 warnings.simplefilter("ignore", ResourceWarning)
+warnings.simplefilter("ignore", DeprecationWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+import distutils.util
 
 from tvm.micro.project_api import server
 
