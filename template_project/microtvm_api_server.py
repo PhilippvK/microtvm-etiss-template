@@ -222,6 +222,13 @@ class Handler(server.ProjectAPIHandler):
                     default=False,
                     help="Write memory trace to file",
                 ),
+                server.ProjectOption(
+                    "support_dir",
+                    optional=["generate_project", "build"],
+                    default=None,
+                    type="str",
+                    help="Path to support directory",
+                ),
             ],
         )
 
@@ -317,9 +324,14 @@ class Handler(server.ProjectAPIHandler):
         cmake_path = project_dir / "cmake"
         os.mkdir(cmake_path)
         shutil.copytree(current_dir / "cmake", cmake_path, dirs_exist_ok=True)
+
         support_path = project_dir / "support"
         os.mkdir(support_path)
-        shutil.copytree(current_dir / "support", support_path, dirs_exist_ok=True)
+        default_support_dir = current_dir / "support"
+        support_dir = options.get("support_dir", default_support_dir)
+        assert support_dir is not None
+        assert pathlib.Path(support_dir).is_dir(), f"Missing: {support_dir}"
+        shutil.copytree(support_dir, support_path, dirs_exist_ok=True)
 
         # Populate crt-config.h
         crt_config_dir = project_dir / "crt_config"
@@ -374,6 +386,8 @@ class Handler(server.ProjectAPIHandler):
         cmake_args.append("-DRISCV_ABI=" + options.get("abi", ABI))
         cmake_args.append("-DRISCV_ELF_GCC_PREFIX=" + options.get("gcc_prefix", ""))
         cmake_args.append("-DRISCV_ELF_GCC_BASENAME=" + options.get("gcc_name", TRIPLE))
+        # default_support_dir = current_dir / "support"
+        # cmake_args.append(f"-DSUPPORT_DIR=" + options.get("support_dir", default_support_dir))
         # print("cmake_args", cmake_args)
         if str2bool(options.get("quiet"), True):
             check_call(["cmake", "..", *cmake_args], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)

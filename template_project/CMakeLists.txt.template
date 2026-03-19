@@ -59,6 +59,10 @@ SET(RISCV_ABI
     "ilp32d"
     CACHE STRING "mabi argument to the compiler"
 )
+SET(SUPPORT_DIR
+    "${CMAKE_SOURCE_DIR}/support"
+    CACHE PATH "Path to support dir"
+)
 
 if("${RISCV_ELF_GCC_PREFIX}" STREQUAL "")
     SET(TC_PREFIX "${RISCV_ELF_GCC_BASENAME}-")
@@ -112,7 +116,7 @@ endforeach(crt_lib_name ${CRT_LIBS})
 add_library(tvm_model)
 file(GLOB_RECURSE tvm_model_srcs model/codegen/host/src/*.c model/codegen/host/lib/*.o)
 target_sources(tvm_model PRIVATE ${tvm_model_srcs})
-target_include_directories(tvm_model PRIVATE ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/support crt_config crt/include)
+target_include_directories(tvm_model PRIVATE ${CMAKE_SOURCE_DIR}/include ${SUPPORT_DIR} crt_config crt/include)
 target_compile_options(tvm_model PRIVATE -Wno-error=unused-variable -Wno-error=missing-braces -Wno-error=unused-const-variable -Wno-unused-variable -Wno-incompatible-pointer-types)
 set_target_properties(tvm_model PROPERTIES LINKER_LANGUAGE C)
 target_link_libraries(tvm_model PRIVATE m)
