@@ -33,7 +33,7 @@ import time
 # import re
 
 import warnings
-from utils import str2bool, check_call
+from utils import str2bool, check_call, debug_print
 
 warnings.simplefilter("ignore", ResourceWarning)
 warnings.simplefilter("ignore", DeprecationWarning)
@@ -43,7 +43,6 @@ import distutils.util
 from tvm.micro.project_api import server
 
 DBG = str2bool(os.environ.get("MICROTVM_API_DBG", False))
-PRINT = str2bool(os.environ.get("MICROTVM_API_PRINT", False))
 
 PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.getcwd())
 
@@ -348,8 +347,7 @@ class Handler(server.ProjectAPIHandler):
         )
 
     def build(self, options):
-        if PRINT:
-            print("build")
+        debug_print("build")
         build_dir = PROJECT_DIR / "build"
         build_dir.mkdir()
         cmake_args = []
@@ -384,8 +382,7 @@ class Handler(server.ProjectAPIHandler):
         assert (new_flag & os.O_NONBLOCK) != 0, "Cannot set file descriptor {fd} to non-blocking"
 
     def open_transport(self, options):
-        if PRINT:
-            print("open_transport")
+        debug_print("open_transport")
         # self._proc = subprocess.Popen(
         #     [self.BUILD_TARGET], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0
         # )
@@ -433,8 +430,7 @@ class Handler(server.ProjectAPIHandler):
         )
 
     def close_transport(self):
-        if PRINT:
-            print("close_transport")
+        debug_print("close_transport")
         if DBG:
             outfile = str(self.elfdest) + ".out"
             with open(outfile, "wb") as f:
@@ -459,8 +455,7 @@ class Handler(server.ProjectAPIHandler):
         return True
 
     def _drain_until_rpc_start(self, timeout=10.0):
-        if PRINT:
-            print("_drain_until_rpc_start")
+        debug_print("_drain_until_rpc_start")
         end = time.time() + timeout
         hist = b""
         while time.time() < end:
@@ -482,13 +477,11 @@ class Handler(server.ProjectAPIHandler):
         raise RuntimeError("RPC start byte not found")
 
     def read_transport(self, n, timeout_sec):
-        if PRINT:
-            print("read_transport", n)
+        debug_print("read_transport", n)
         if self._rx_buffer:
             data = self._rx_buffer
             self._rx_buffer = b""
-            if PRINT:
-                print("ret", data)
+            debug_print("ret", data)
             return data
 
         if self._proc is None:
@@ -506,16 +499,14 @@ class Handler(server.ProjectAPIHandler):
         if not to_return:
             self.close_transport()
             raise server.TransportClosedError()
-        if PRINT:
-            print("ret", to_return)
+        debug_print("ret", to_return)
         if DBG:
             self.outputs += to_return
 
         return to_return
 
     def write_transport(self, data, timeout_sec):
-        if PRINT:
-            print("write_transport", data)
+        debug_print("write_transport", data)
         if self._proc is None:
             raise server.TransportClosedError()
 
