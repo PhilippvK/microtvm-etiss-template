@@ -86,9 +86,12 @@ def str2bool(value, allow_none=False):
     return bool(value) if isinstance(value, (int, bool)) else bool(distutils.util.strtobool(value))
 
 
-def check_call(cmd_args, *args, **kwargs):
+def check_call(cmd_args, *args, quiet: bool = True, **kwargs):
     cwd_str = "" if "cwd" not in kwargs else f" (in cwd: {kwargs['cwd']})"
-    _LOG.info("run%s: %s", cwd_str, " ".join(shlex.quote(a) for a in cmd_args))
+    _LOG.info("run%s: %s", cwd_str, " ".join(shlex.quote(str(a)) for a in cmd_args))
+    if quiet:
+        kwargs["stderr"] = subprocess.DEVNULL
+        kwargs["stdout"] = subprocess.DEVNULL
     return subprocess.check_call(cmd_args, *args, **kwargs)
 
 
@@ -389,12 +392,9 @@ class Handler(server.ProjectAPIHandler):
         # default_support_dir = current_dir / "support"
         # cmake_args.append(f"-DSUPPORT_DIR=" + options.get("support_dir", default_support_dir))
         # print("cmake_args", cmake_args)
-        if str2bool(options.get("quiet"), True):
-            check_call(["cmake", "..", *cmake_args], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-            check_call(["make", f"-j{NPROC}"], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        else:
-            check_call(["cmake", "..", *cmake_args], cwd=build_dir)
-            check_call(["make", f"-j{NPROC}"], cwd=build_dir)
+        quiet = str2bool(options.get("quiet"), True)
+        check_call(["cmake", "-S", PROJECT_DIR, "-B", build_dir, *cmake_args], cwd=build_dir, quiet=quiet)
+        check_call(["cmake", "--build", build_dir, f"-j{NPROC}"], cwd=build_dir, quiet=quiet)
 
     def flash(self, options):
         pass  # Flashing does nothing on host.
