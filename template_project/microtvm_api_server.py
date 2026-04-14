@@ -26,33 +26,67 @@ import os.path
 import pathlib
 import select
 import shutil
-import logging
 import subprocess
 import tarfile
 import tempfile
 import time
-import re
+# import re
+
+import warnings
+
+# Common Utils
+import os
+import logging
+
+_LOG = logging.getLogger(__name__)
+
+
+def str2bool(value, allow_none=False):
+    if value is None:
+        assert allow_none, "str2bool received None value while allow_none=False"
+        return value
+    return bool(value) if isinstance(value, (int, bool)) else bool(distutils.util.strtobool(value))
+
+
+PRINT = str2bool(os.environ.get("MICROTVM_API_PRINT", False))
+_LOG.setLevel(logging.INFO if PRINT else logging.WARNING)
+
+def check_call(cmd_args, *args, quiet: bool = True, **kwargs):
+    cwd_str = "" if "cwd" not in kwargs else f" (in cwd: {kwargs['cwd']})"
+    _LOG.info("run%s: %s", cwd_str, " ".join(shlex.quote(str(a)) for a in cmd_args))
+    if quiet:
+        kwargs["stderr"] = subprocess.DEVNULL
+        kwargs["stdout"] = subprocess.DEVNULL
+    return subprocess.check_call(cmd_args, *args, **kwargs)
+
+
+def debug_print(*args, **kwargs):
+    if PRINT:
+        print(*args, **kwargs)
+
+warnings.simplefilter("ignore", ResourceWarning)
+warnings.simplefilter("ignore", DeprecationWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+# ---
+
 import distutils.util
 
 from tvm.micro.project_api import server
 
-_LOG = logging.getLogger(__name__)
-_LOG.setLevel(logging.WARNING)
+DBG = str2bool(os.environ.get("MICROTVM_API_DBG", False))
 
-DBG = False
-# DBG = True
-
-PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.path.getcwd())
-
+PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.getcwd())
 
 MODEL_LIBRARY_FORMAT_RELPATH = "model.tar"
-
 
 IS_TEMPLATE = not os.path.exists(os.path.join(PROJECT_DIR, MODEL_LIBRARY_FORMAT_RELPATH))
 
 # Used this size to pass most CRT tests in TVM.
-# WORKSPACE_SIZE_BYTES = 2 * 1024 * 1024
-WORKSPACE_SIZE_BYTES = 1 * 1024 * 1024
+# WORKSPACE_SIZE_BYTES = 4 * 1024 * 1024
+WORKSPACE_SIZE_BYTES = 2 * 1024 * 1024
+# WORKSPACE_SIZE_BYTES = 1 * 1024 * 1024
+
+CPU_FREQ = 100e6
 
 CMAKEFILE_FILENAME = "CMakeLists.txt"
 INI_FILENAME = "etiss.ini"
@@ -64,20 +98,9 @@ ARCH = "rv32gc"
 ABI = "ilp32d"
 TRIPLE = "riscv32-unknown-elf"
 TOOLCHAIN = "gcc"
-NPROC = multiprocessing.cpu_count()
+NPROC = int(os.environ.get("NPROC", multiprocessing.cpu_count()))
 
 
-def str2bool(value, allow_none=False):
-    if value is None:
-        assert allow_none, "str2bool received None value while allow_none=False"
-        return value
-    return bool(value) if isinstance(value, (int, bool)) else bool(distutils.util.strtobool(value))
-
-
-def check_call(cmd_args, *args, **kwargs):
-    cwd_str = "" if "cwd" not in kwargs else f" (in cwd: {kwargs['cwd']})"
-    _LOG.info("run%s: %s", cwd_str, " ".join(shlex.quote(a) for a in cmd_args))
-    return subprocess.check_call(cmd_args, *args, **kwargs)
 
 
 class Handler(server.ProjectAPIHandler):
@@ -189,6 +212,34 @@ class Handler(server.ProjectAPIHandler):
                     type="str",
                     help="Path to run_helper.sh script.",
                 ),
+                server.ProjectOption(
+                    "cpu_freq",
+                    optional=["generate_project", "build"],  # TODO: check
+                    type="int",
+                    default=CPU_FREQ,
+                    help="Sets the value of ETISS_CPU_FREQ_HZ.",
+                ),
+                server.ProjectOption(
+                    "instr_trace",
+                    optional=["open_transport"],
+                    type="bool",
+                    default=False,
+                    help="Write instruction trace to file",
+                ),
+                server.ProjectOption(
+                    "mem_trace",
+                    optional=["open_transport"],
+                    type="bool",
+                    default=False,
+                    help="Write memory trace to file",
+                ),
+                server.ProjectOption(
+                    "support_dir",
+                    optional=["generate_project", "build"],
+                    default=None,
+                    type="str",
+                    help="Path to support directory",
+                ),
             ],
         )
 
@@ -218,7 +269,10 @@ class Handler(server.ProjectAPIHandler):
         self,
         ini_template_path: pathlib.Path,
         ini_path: pathlib.Path,
-        cpu_arch: str,
+        cpu_arch: str = None,
+        instr_trace: bool = None,
+        mem_trace: bool = None,
+        # TODO: gdbserver
     ):
         """Generate etiss.ini file from template."""
 
@@ -226,10 +280,19 @@ class Handler(server.ProjectAPIHandler):
             with open(ini_template_path, "r") as ini_template_f:
                 for line in ini_template_f:
                     ini_f.write(line)
-                if cpu_arch in [None, "None"]:
-                    return
                 # ini_f.write("[StringConfigurations]\n")
-                ini_f.write(f"arch.cpu={cpu_arch}\n")
+                if cpu_arch not in [None, "None"]:
+                    ini_f.write(f"arch.cpu={cpu_arch}\n")
+                    # return
+                if mem_trace:
+                    ini_f.write("[BoolConfigurations]\n")
+                if mem_trace:
+                    ini_f.write("simple_mem_system.print_dbus_access=true\n")
+                    ini_f.write("simple_mem_system.print_to_file=true\n")
+                if instr_trace:
+                    ini_f.write("[Plugin PrintInstruction]\n")
+                    # ini_f.write("plugin.printinstruction.print_to_file=true\n")
+                    ini_f.write("plugin.printinstruction.print_to_file=true\n")
 
     def generate_project(self, model_library_format_path, standalone_crt_dir, project_dir, options):
         # Make project directory.
@@ -273,6 +336,14 @@ class Handler(server.ProjectAPIHandler):
         os.mkdir(cmake_path)
         shutil.copytree(current_dir / "cmake", cmake_path, dirs_exist_ok=True)
 
+        support_path = project_dir / "support"
+        os.mkdir(support_path)
+        default_support_dir = current_dir / "support"
+        support_dir = options.get("support_dir", default_support_dir)
+        assert support_dir is not None
+        assert pathlib.Path(support_dir).is_dir(), f"Missing: {support_dir}"
+        shutil.copytree(support_dir, support_path, dirs_exist_ok=True)
+
         # Populate crt-config.h
         crt_config_dir = project_dir / "crt_config"
         crt_config_dir.mkdir()
@@ -295,20 +366,27 @@ class Handler(server.ProjectAPIHandler):
 
         # Copy etiss.ini
         xlen = int(options.get("arch", ARCH)[2:4])
+        instr_trace = options.get("instr_trace", False)
+        mem_trace = options.get("mem_trace", False)
         default_cpu_arch = f"RV{xlen}IMACFD"
         self._populate_ini(
             current_dir / f"etiss.ini.template",
             project_dir / INI_FILENAME,
-            options.get("cpu_arch", default_cpu_arch),
+            cpu_arch=options.get("cpu_arch", default_cpu_arch),
+            instr_trace=instr_trace,
+            mem_trace=mem_trace,
         )
 
     def build(self, options):
+        debug_print("build")
         build_dir = PROJECT_DIR / "build"
         build_dir.mkdir()
         cmake_args = []
         debug = options.get("debug", False)
         build_type = "Debug" if debug else "Release"
         cmake_args.append(f"-DCMAKE_BUILD_TYPE={build_type}")
+        cpu_freq = options.get("cpu_freq", CPU_FREQ)
+        cmake_args.append(f"-DETISS_CPU_FREQ_HZ={cpu_freq}")
         cmake_args.append("-DTOOLCHAIN=" + options.get("toolchain", TOOLCHAIN))
         llvm_dir = options.get("llvm_dir", None)
         if llvm_dir:
@@ -318,12 +396,12 @@ class Handler(server.ProjectAPIHandler):
         cmake_args.append("-DRISCV_ABI=" + options.get("abi", ABI))
         cmake_args.append("-DRISCV_ELF_GCC_PREFIX=" + options.get("gcc_prefix", ""))
         cmake_args.append("-DRISCV_ELF_GCC_BASENAME=" + options.get("gcc_name", TRIPLE))
-        if str2bool(options.get("quiet"), True):
-            check_call(["cmake", "..", *cmake_args], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-            check_call(["make", f"-j{NPROC}"], cwd=build_dir, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        else:
-            check_call(["cmake", "..", *cmake_args], cwd=build_dir)
-            check_call(["make", f"-j{NPROC}"], cwd=build_dir)
+        # default_support_dir = current_dir / "support"
+        # cmake_args.append(f"-DSUPPORT_DIR=" + options.get("support_dir", default_support_dir))
+        # print("cmake_args", cmake_args)
+        quiet = str2bool(options.get("quiet"), True)
+        check_call(["cmake", "-S", PROJECT_DIR, "-B", build_dir, *cmake_args], cwd=build_dir, quiet=quiet)
+        check_call(["cmake", "--build", build_dir, f"-j{NPROC}"], cwd=build_dir, quiet=quiet)
 
     def flash(self, options):
         pass  # Flashing does nothing on host.
@@ -335,7 +413,7 @@ class Handler(server.ProjectAPIHandler):
         assert (new_flag & os.O_NONBLOCK) != 0, "Cannot set file descriptor {fd} to non-blocking"
 
     def open_transport(self, options):
-        # print("open_transport")
+        debug_print("open_transport")
         # self._proc = subprocess.Popen(
         #     [self.BUILD_TARGET], stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0
         # )
@@ -353,18 +431,24 @@ class Handler(server.ProjectAPIHandler):
         # args.append("tgdb")
         # args.append("noattach")
         # print("args", args)
-        # input(">")
         # time.sleep(30)
+        # input("?")
+        # TODO: cwd
+        # print("CWD", os.getcwd())
+        # input(">")
         self._proc = subprocess.Popen(
             args,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             bufsize=0,
             preexec_fn=os.setsid,
+            # cwd=PROJECT_DIR
         )
         # print("A")
         self._set_nonblock(self._proc.stdin.fileno())
         self._set_nonblock(self._proc.stdout.fileno())
+        self._drain_until_rpc_start()
         # while True:
         #     self.read_transport(1000, 10.0)
         #     time.sleep(1)
@@ -377,7 +461,7 @@ class Handler(server.ProjectAPIHandler):
         )
 
     def close_transport(self):
-        # print("close_transport")
+        debug_print("close_transport")
         if DBG:
             outfile = str(self.elfdest) + ".out"
             with open(outfile, "wb") as f:
@@ -401,8 +485,36 @@ class Handler(server.ProjectAPIHandler):
 
         return True
 
+    def _drain_until_rpc_start(self, timeout=10.0):
+        debug_print("_drain_until_rpc_start")
+        end = time.time() + timeout
+        hist = b""
+        while time.time() < end:
+            fd = self._proc.stdout.fileno()
+            r, _, _ = select.select([fd], [], [], 0.05)
+            if not r:
+                continue
+
+            b = os.read(fd, 1)
+            hist += b
+            if not b:
+                continue
+
+            if b == b'\xfe':
+                # push back into buffer
+                self._rx_buffer = b
+                return
+
+        raise RuntimeError("RPC start byte not found")
+
     def read_transport(self, n, timeout_sec):
-        # print("read_transport", n)
+        debug_print("read_transport", n)
+        if self._rx_buffer:
+            data = self._rx_buffer
+            self._rx_buffer = b""
+            debug_print("ret", data)
+            return data
+
         if self._proc is None:
             raise server.TransportClosedError()
 
@@ -418,14 +530,14 @@ class Handler(server.ProjectAPIHandler):
         if not to_return:
             self.close_transport()
             raise server.TransportClosedError()
-        # print("ret", to_return)
+        debug_print("ret", to_return)
         if DBG:
             self.outputs += to_return
 
         return to_return
 
     def write_transport(self, data, timeout_sec):
-        # print("write_transport", data)
+        debug_print("write_transport", data)
         if self._proc is None:
             raise server.TransportClosedError()
 
