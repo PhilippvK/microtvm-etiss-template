@@ -20,7 +20,7 @@ import multiprocessing
 import atexit
 import os
 import signal
-# import sys
+import sys
 import shlex
 import os.path
 import pathlib
@@ -33,6 +33,8 @@ import time
 # import re
 
 import warnings
+
+sys.path.append(os.path.dirname(__file__))
 from utils import str2bool, check_call, debug_print
 
 warnings.simplefilter("ignore", ResourceWarning)
