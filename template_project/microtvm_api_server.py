@@ -76,7 +76,7 @@ ARCH = "rv32gc"
 ABI = "ilp32d"
 TRIPLE = "riscv32-unknown-elf"
 TOOLCHAIN = "gcc"
-NPROC = multiprocessing.cpu_count()
+NPROC = int(os.environ.get("NPROC", multiprocessing.cpu_count()))
 
 
 def str2bool(value, allow_none=False):
