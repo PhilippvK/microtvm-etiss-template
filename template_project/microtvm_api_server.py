@@ -43,13 +43,14 @@ import distutils.util
 from tvm.micro.project_api import server
 
 _LOG = logging.getLogger(__name__)
-_LOG.setLevel(logging.WARNING)
 
 DBG = False
 # DBG = True
 
 PRINT = False
 # PRINT = True
+
+_LOG.setLevel(logging.INFO if PRINT else logging.WARNING)
 
 PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.getcwd())
 
