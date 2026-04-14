@@ -26,7 +26,6 @@ import os.path
 import pathlib
 import select
 import shutil
-import logging
 import subprocess
 import tarfile
 import tempfile
@@ -34,6 +33,7 @@ import time
 # import re
 
 import warnings
+from utils import str2bool, check_call
 
 warnings.simplefilter("ignore", ResourceWarning)
 warnings.simplefilter("ignore", DeprecationWarning)
@@ -42,21 +42,12 @@ import distutils.util
 
 from tvm.micro.project_api import server
 
-_LOG = logging.getLogger(__name__)
-
-DBG = False
-# DBG = True
-
-PRINT = False
-# PRINT = True
-
-_LOG.setLevel(logging.INFO if PRINT else logging.WARNING)
+DBG = str2bool(os.environ.get("MICROTVM_API_DBG", False))
+PRINT = str2bool(os.environ.get("MICROTVM_API_PRINT", False))
 
 PROJECT_DIR = pathlib.Path(os.path.dirname(__file__) or os.getcwd())
 
-
 MODEL_LIBRARY_FORMAT_RELPATH = "model.tar"
-
 
 IS_TEMPLATE = not os.path.exists(os.path.join(PROJECT_DIR, MODEL_LIBRARY_FORMAT_RELPATH))
 
@@ -80,20 +71,6 @@ TOOLCHAIN = "gcc"
 NPROC = int(os.environ.get("NPROC", multiprocessing.cpu_count()))
 
 
-def str2bool(value, allow_none=False):
-    if value is None:
-        assert allow_none, "str2bool received None value while allow_none=False"
-        return value
-    return bool(value) if isinstance(value, (int, bool)) else bool(distutils.util.strtobool(value))
-
-
-def check_call(cmd_args, *args, quiet: bool = True, **kwargs):
-    cwd_str = "" if "cwd" not in kwargs else f" (in cwd: {kwargs['cwd']})"
-    _LOG.info("run%s: %s", cwd_str, " ".join(shlex.quote(str(a)) for a in cmd_args))
-    if quiet:
-        kwargs["stderr"] = subprocess.DEVNULL
-        kwargs["stdout"] = subprocess.DEVNULL
-    return subprocess.check_call(cmd_args, *args, **kwargs)
 
 
 class Handler(server.ProjectAPIHandler):
