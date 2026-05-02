@@ -522,23 +522,35 @@ class Handler(server.ProjectAPIHandler):
         fd = self._proc.stdout.fileno()
         end_time = None if timeout_sec is None else time.monotonic() + timeout_sec
 
-        try:
+        chunks = []
+        total_read = 0
+
+        while total_read < n:
             self._await_ready([fd], [], end_time=end_time)
-            to_return = os.read(fd, n)
-        except BrokenPipeError:
-            to_return = 0
 
-        if not to_return:
-            self.close_transport()
-            raise server.TransportClosedError()
-        debug_print("ret", to_return)
+            try:
+                chunk = os.read(fd, n - total_read)
+            except BrokenPipeError:
+                chunk = b""
+
+            if not chunk:
+                self.close_transport()
+                raise server.TransportClosedError()
+
+            chunks.append(chunk)
+            total_read += len(chunk)
+
+        data = b"".join(chunks)
+        assert len(data) == n
+
+        debug_print("ret", data, len(data))
         if DBG:
-            self.outputs += to_return
+            self.outputs +=data
 
-        return to_return
+        return data
 
     def write_transport(self, data, timeout_sec):
-        debug_print("write_transport", data)
+        debug_print("write_transport", data, len(data))
         if self._proc is None:
             raise server.TransportClosedError()
 
