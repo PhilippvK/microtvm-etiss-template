@@ -30,6 +30,7 @@ import subprocess
 import tarfile
 import tempfile
 import time
+import distutils.util
 # import re
 
 import warnings
