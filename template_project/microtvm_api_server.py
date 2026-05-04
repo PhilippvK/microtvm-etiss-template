@@ -30,10 +30,15 @@ import subprocess
 import tarfile
 import tempfile
 import time
-import distutils.util
 # import re
 
 import warnings
+warnings.simplefilter("ignore", ResourceWarning)
+warnings.simplefilter("ignore", DeprecationWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+import distutils.util
+
+from tvm.micro.project_api import server
 
 # Common Utils
 import os
@@ -65,14 +70,8 @@ def debug_print(*args, **kwargs):
     if PRINT:
         print(*args, **kwargs)
 
-warnings.simplefilter("ignore", ResourceWarning)
-warnings.simplefilter("ignore", DeprecationWarning)
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 # ---
 
-import distutils.util
-
-from tvm.micro.project_api import server
 
 DBG = str2bool(os.environ.get("MICROTVM_API_DBG", False))
 
@@ -557,7 +556,6 @@ class Handler(server.ProjectAPIHandler):
         fd = self._proc.stdin.fileno()
         end_time = None if timeout_sec is None else time.monotonic() + timeout_sec
 
-        data_len = len(data)
         while data:
             self._await_ready([], [fd], end_time=end_time)
             try:
