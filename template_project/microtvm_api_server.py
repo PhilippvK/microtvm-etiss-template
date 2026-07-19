@@ -544,7 +544,7 @@ class Handler(server.ProjectAPIHandler):
 
         debug_print("ret", data, len(data))
         if DBG:
-            self.outputs +=data
+            self.outputs += data
 
         return data
 
